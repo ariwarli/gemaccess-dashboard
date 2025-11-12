@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GemAccess Dashboard - Token Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h3 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .auth-form {
+            grid-column: 1 / -1;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #4a5568;
+            font-weight: 600;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+        }
+
+        .btn-secondary:hover {
+            background: #edf2f7;
+        }
+
+        .token-display {
+            background: #f7fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+        }
+
+        .token-text {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            word-break: break-all;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #48bb78;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status-expired {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .usage-stats {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.9rem;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .alert-success {
+            background: #c6f6d5;
+            color: #22543d;
+            border: 1px solid #9ae6b4;
+        }
+
+        .alert-error {
+            background: #fed7d7;
+            color: #742a2a;
+            border: 1px solid #feb2b2;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .usage-stats {
+                flex-direction: column;
+                gap: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 GemAccess Dashboard</h1>
+            <p>Secure Authentication for Custom GPT & Gemini API</p>
+        </div>
+
+        <!-- Authentication Form -->
+        <div id="authSection" class="card auth-form">
+            <h3>Get Started with GemAccess</h3>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="your.email@example.com" required>
+            </div>
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" placeholder="John Doe" required>
+            </div>
+            <button class="btn" onclick="signup()">Start Free 3-Day Trial</button>
+            <p style="margin-top: 15px; color: #718096;">
+                Already have an account? <a href="#" onclick="showLoginForm()" style="color: #667eea;">Sign in here</a>
+            </p>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginSection" class="card auth-form hidden">
+            <h3>Welcome Back!</h3>
+            <div class="form-group">
+                <label for="loginEmail">Email Address</label>
+                <input type="email" id="loginEmail" placeholder="your.email@example.com" required>
+            </div>
+            <button class="btn" onclick="login()">Get My Token</button>
+            <p style="margin-top: 15px; color: #718096;">
+                New to GemAccess? <a href="#" onclick="showSignupForm()" style="color: #667eea;">Start your trial</a>
+            </p>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboardSection" class="hidden">
+            <div class="dashboard-grid">
+                <!-- Token Management -->
+                <div class="card">
+                    <h3>🎫 Your Access Token</h3>
+                    <div class="token-display">
+                        <button class="copy-btn" onclick="copyToken()">Copy</button>
+                        <div class="token-text" id="tokenDisplay">
+                            Loading your token...
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="generateNewToken()">Generate New Token</button>
+                    <button class="btn" onclick="refreshToken()">Refresh Token</button>
+                </div>
+
+                <!-- Subscription Status -->
+                <div class="card">
+                    <h3>📊 Subscription Status</h3>
+                    <div style="margin: 20px 0;">
+                        <span class="status-badge status-active" id="statusBadge">Active Trial</span>
+                    </div>
+                    <div style="margin: 15px 0;">
+                        <strong>Plan:</strong> <span id="planType">3-Day Trial</span><br>
+                        <strong>Expires:</strong> <span id="expiryDate">Loading...</span><br>
+                        <strong>Days Remaining:</strong> <span id="daysLeft">Loading...</span>
+                    </div>
+                    <button class="btn" onclick="upgradePlan()">Upgrade Plan</button>
+                </div>
+
+                <!-- Usage Statistics -->
+                <div class="card">
+                    <h3>📈 Usage Statistics</h3>
+                    <div class="usage-stats">
+                        <div class="stat-item">
+                            <div class="stat-number" id="totalRequests">0</div>
+                            <div class="stat-label">Total Requests</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="todayRequests">0</div>
+                            <div class="stat-label">Today</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="successRate">100%</div>
+                            <div class="stat-label">Success Rate</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Setup Guide -->
+                <div class="card">
+                    <h3>🚀 Quick Setup Guide</h3>
+                    <ol style="line-height: 1.8;">
+                        <li>Copy your access token above</li>
+                        <li>Open your Custom GPT or Gemini interface</li>
+                        <li>Provide your token when prompted</li>
+                        <li>Start using secured AI assistance!</li>
+                    </ol>
+                    <button class="btn btn-secondary" onclick="showDocumentation()">View Full Documentation</button>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-secondary" onclick="logout()">Sign Out</button>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div id="alertContainer"></div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_CONFIG = {
+            signup: 'https://n8n.banirisset.com/webhook/signup',
+            validate: 'https://n8n.banirisset.com/webhook/validate',
+            // Add other endpoints as needed
+        };
+
+        let currentUser = null;
+        let currentToken = null;
+
+        // Authentication Functions
+        async function signup() {
+            const email = document.getElementById('email').value;
+            const name = document.getElementById('name').value;
+            
+            if (!email || !name) {
+                showAlert('Please fill in all fields', 'error');
+                return;
+            }
+
+            showLoading('Creating your account...');
+            
+            try {
+                const response = await fetch(API_CONFIG.signup, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, name })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentUser = { email, name };
+                    currentToken = result.token;
+                    localStorage.setItem('gemaccess_user', JSON.stringify(currentUser));
+                    localStorage.setItem('gemaccess_token', currentToken);
+                    
+                    showAlert('Account created successfully! Welcome to GemAccess!', 'success');
+                    showDashboard();
+                } else {
+                    showAlert(result.message || 'Signup failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                showAlert('Network error. Please check your connection and try again.', 'error');
+                console.error('Signup error:', error);
+            }
+            
+            hideLoading();
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value;
+            
+            if (!email) {
+                showAlert('Please enter your email address', 'error');
+                return;
+            }
+
+            showLoading('Finding your account...');
+            
+            // This would typically validate against your user database
+            // For now, we'll simulate the process
+            try {
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // You would implement actual user lookup here
+                showAlert('Login feature coming soon! Please use signup for now.', 'error');
+            } catch (error) {
+                showAlert('Login error. Please try again.', 'error');
+            }
+            
+            hideLoading();
+        }
+
+        // Token Management Functions
+        async function generateNewToken() {
+            if (!currentUser) return;
+            
+            showLoading('Generating new token...');
+            
+            try {
+                // Implement token generation API call
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Update token display
+                updateTokenDisplay();
+                showAlert('New token generated successfully!', 'success');
+            } catch (error) {
+                showAlert('Failed to generate new token. Please try again.', 'error');
+            }
+            
+            hideLoading();
+        }
+
+        async function refreshToken() {
+            if (!currentToken) return;
+            
+            showLoading('Validating token...');
+            
+            try {
+                const response = await fetch(API_CONFIG.validate, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token: currentToken })
+                });
+
+                const result = await response.json();
+                
+                if (result.success && result.valid) {
+                    updateSubscriptionStatus(result.subscription);
+                    showAlert('Token validated successfully!', 'success');
+                } else {
+                    showAlert('Token is invalid or expired. Please generate a new one.', 'error');
+                }
+            } catch (error) {
+                showAlert('Failed to validate token. Please check your connection.', 'error');
+            }
+            
+            hideLoading();
+        }
+
+        function copyToken() {
+            const tokenElement = document.getElementById('tokenDisplay');
+            const token = tokenElement.textContent;
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(token).then(() => {
+                    showAlert('Token copied to clipboard!', 'success');
+                });
+            } else {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = token;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showAlert('Token copied to clipboard!', 'success');
+            }
+        }
+
+        // UI Management Functions
+        function showSignupForm() {
+            document.getElementById('authSection').classList.remove('hidden');
+            document.getElementById('loginSection').classList.add('hidden');
+        }
+
+        function showLoginForm() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+        }
+
+        function showDashboard() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            
+            updateTokenDisplay();
+            updateSubscriptionStatus();
+            updateUsageStats();
+        }
+
+        function updateTokenDisplay() {
+            const tokenElement = document.getElementById('tokenDisplay');
+            if (currentToken) {
+                tokenElement.textContent = currentToken;
+            } else {
+                tokenElement.textContent = 'No token available. Please generate one.';
+            }
+        }
+
+        function updateSubscriptionStatus(subscription) {
+            if (subscription) {
+                document.getElementById('planType').textContent = subscription.plan_type || 'Trial';
+                document.getElementById('daysLeft').textContent = subscription.days_remaining || 'N/A';
+                
+                const statusBadge = document.getElementById('statusBadge');
+                if (subscription.active) {
+                    statusBadge.textContent = 'Active';
+                    statusBadge.className = 'status-badge status-active';
+                } else {
+                    statusBadge.textContent = 'Expired';
+                    statusBadge.className = 'status-badge status-expired';
+                }
+            }
+        }
+
+        function updateUsageStats() {
+            // Simulate usage stats
+            document.getElementById('totalRequests').textContent = '47';
+            document.getElementById('todayRequests').textContent = '12';
+            document.getElementById('successRate').textContent = '98%';
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = `
+                ${message}
+                <button onclick="this.parentElement.remove()" style="float: right; background: none; border: none; font-size: 1.2rem; cursor: pointer;">&times;</button>
+            `;
+            container.appendChild(alert);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (alert.parentElement) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        function showLoading(message) {
+            showAlert(`<div class="spinner"></div>${message}`, 'success');
+        }
+
+        function hideLoading() {
+            // Loading is handled by auto-remove timeout
+        }
+
+        function logout() {
+            localStorage.removeItem('gemaccess_user');
+            localStorage.removeItem('gemaccess_token');
+            currentUser = null;
+            currentToken = null;
+            showSignupForm();
+            showAlert('Signed out successfully', 'success');
+        }
+
+        function upgradePlan() {
+            showAlert('Upgrade functionality coming soon! Contact support for premium plans.', 'success');
+        }
+
+        function showDocumentation() {
+            window.open('https://docs.gemaccess.com', '_blank');
+        }
+
+        // Initialize app
+        function initApp() {
+            // Check for saved user session
+            const savedUser = localStorage.getItem('gemaccess_user');
+            const savedToken = localStorage.getItem('gemaccess_token');
+            
+            if (savedUser && savedToken) {
+                currentUser = JSON.parse(savedUser);
+                currentToken = savedToken;
+                showDashboard();
+            } else {
+                showSignupForm();
+            }
+        }
+
+        // Start the app when page loads
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+</html>
