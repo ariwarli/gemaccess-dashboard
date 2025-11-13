@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GemAccess Dashboard - Connected</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh; color: #333;
+        }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; color: white; margin-bottom: 30px; }
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .card {
+            background: white; border-radius: 15px; padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 20px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: 600; }
+        .form-group input {
+            width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px;
+            font-size: 1rem; transition: border-color 0.3s;
+        }
+        .form-group input:focus { outline: none; border-color: #667eea; }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border: none; padding: 12px 25px; border-radius: 8px;
+            font-size: 1rem; cursor: pointer; margin: 5px; transition: transform 0.2s;
+            position: relative; overflow: hidden;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled { 
+            background: #ccc; cursor: not-allowed; transform: none;
+        }
+        .btn-secondary { background: #f7fafc; color: #4a5568; border: 2px solid #e2e8f0; }
+        .loading {
+            display: none; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); color: white;
+        }
+        .spinner {
+            width: 20px; height: 20px; border: 2px solid transparent;
+            border-top: 2px solid white; border-radius: 50%;
+            animation: spin 1s linear infinite; display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .token-display {
+            background: #f7fafc; border: 2px dashed #cbd5e0; border-radius: 8px;
+            padding: 20px; margin: 20px 0; position: relative;
+        }
+        .token-text {
+            font-family: monospace; word-break: break-all; background: white;
+            padding: 15px; border-radius: 5px; border: 1px solid #e2e8f0;
+            min-height: 60px; display: flex; align-items: center;
+        }
+        .copy-btn {
+            position: absolute; top: 10px; right: 10px; background: #48bb78;
+            color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer;
+        }
+        .status { padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; }
+        .status-active { background: #c6f6d5; color: #22543d; }
+        .status-expired { background: #fed7d7; color: #742a2a; }
+        .status-loading { background: #e2e8f0; color: #4a5568; }
+        .alert {
+            padding: 15px; border-radius: 8px; margin: 20px 0; position: relative;
+        }
+        .alert-success { background: #c6f6d5; color: #22543d; border: 1px solid #9ae6b4; }
+        .alert-error { background: #fed7d7; color: #742a2a; border: 1px solid #feb2b2; }
+        .alert-info { background: #bee3f8; color: #2a4365; border: 1px solid #90cdf4; }
+        .hidden { display: none; }
+        .debug-info {
+            background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 5px;
+            padding: 10px; margin: 10px 0; font-family: monospace; font-size: 0.8rem;
+            max-height: 200px; overflow-y: auto;
+        }
+        @media (max-width: 768px) {
+            .header h1 { font-size: 2rem; }
+            .card { padding: 20px; }
+            .btn { width: 100%; margin: 5px 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 GemAccess</h1>
+            <p>Secure Authentication for Custom GPT & Gemini API</p>
+            <p style="font-size: 0.9rem; opacity: 0.8;">Connected Version - Live Backend Integration</p>
+        </div>
+
+        <!-- Signup Form -->
+        <div id="signupForm" class="card">
+            <h2>Start Your Free 3-Day Trial</h2>
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="email" placeholder="your.email@example.com" required>
+            </div>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="name" placeholder="John Doe" required>
+            </div>
+            <button class="btn" id="signupBtn" onclick="signup()">
+                <span class="btn-text">Get My Access Token</span>
+                <span class="loading">
+                    <span class="spinner"></span> Creating Account...
+                </span>
+            </button>
+            <p style="margin-top: 15px; color: #666;">
+                Already have a token? <a href="#" onclick="showDashboard()">Go to dashboard</a>
+            </p>
+            
+            <!-- Debug Info -->
+            <div id="debugSignup" class="debug-info hidden">
+                <strong>Debug Info:</strong><br>
+                <span id="debugSignupContent">No debug info yet</span>
+            </div>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard" class="hidden">
+            <div class="card">
+                <h2>🎫 Your Access Token</h2>
+                <div class="token-display">
+                    <button class="copy-btn" onclick="copyToken()">Copy</button>
+                    <div class="token-text" id="tokenDisplay">
+                        <span style="color: #999;">Loading your token...</span>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" id="refreshBtn" onclick="refreshToken()">
+                    <span class="btn-text">Refresh Token</span>
+                    <span class="loading">
+                        <span class="spinner"></span> Validating...
+                    </span>
+                </button>
+                <button class="btn" onclick="showInstructions()">Setup Instructions</button>
+                
+                <!-- Debug Info -->
+                <div id="debugToken" class="debug-info hidden">
+                    <strong>Token Debug:</strong><br>
+                    <span id="debugTokenContent">No debug info yet</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📊 Account Status</h2>
+                <p><span class="status status-loading" id="status">Loading...</span></p>
+                <div id="accountDetails" style="margin: 15px 0; line-height: 1.6;">
+                    <div><strong>Plan:</strong> <span id="planType">Loading...</span></div>
+                    <div><strong>Created:</strong> <span id="createdAt">Loading...</span></div>
+                    <div><strong>Days Left:</strong> <span id="daysLeft">Loading...</span></div>
+                    <div><strong>Expires:</strong> <span id="expiresAt">Loading...</span></div>
+                </div>
+                <button class="btn" onclick="showUpgrade()">Upgrade Plan</button>
+                
+                <!-- Debug Info -->
+                <div id="debugStatus" class="debug-info hidden">
+                    <strong>Status Debug:</strong><br>
+                    <span id="debugStatusContent">No debug info yet</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>🚀 How to Use Your Token</h2>
+                <ol style="line-height: 1.8;">
+                    <li>Copy your access token above</li>
+                    <li>Open your Custom GPT (VPSPilot v1.3)</li>
+                    <li>Say: "My token is [paste your token here]. Help me with my VPS."</li>
+                    <li>Start getting authenticated VPS assistance!</li>
+                </ol>
+                <div style="background: #f0fff4; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <strong>💡 Pro Tip:</strong> Save your token somewhere safe. You'll need it every time you use Custom GPT!
+                </div>
+            </div>
+
+            <div style="text-align: center; margin: 20px 0;">
+                <button class="btn btn-secondary" onclick="logout()">Sign Out</button>
+                <button class="btn btn-secondary" onclick="toggleDebug()">Toggle Debug</button>
+            </div>
+        </div>
+
+        <div id="alerts"></div>
+    </div>
+
+    <script>
+        // Configuration with error handling
+        const API_CONFIG = {
+            signup: 'https://n8n.banirisset.com/webhook/signup',
+            validate: 'https://n8n.banirisset.com/webhook/validate',
+            gate: 'https://n8n.banirisset.com/webhook/gate'
+        };
+
+        let currentUser = JSON.parse(localStorage.getItem('gemaccess_user') || 'null');
+        let currentToken = localStorage.getItem('gemaccess_token');
+        let debugMode = localStorage.getItem('gemaccess_debug') === 'true';
+
+        // Initialize app
+        function initApp() {
+            if (debugMode) toggleDebug(true);
+            
+            if (currentUser && currentToken) {
+                showDashboard();
+                refreshToken(); // Validate existing token
+            } else {
+                showSignup();
+            }
+        }
+
+        function showAlert(message, type = 'success') {
+            const alerts = document.getElementById('alerts');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = `
+                ${message} 
+                <button onclick="this.parentElement.remove()" 
+                        style="float:right;background:none;border:none;cursor:pointer;font-size:1.2rem;">&times;</button>
+            `;
+            alerts.appendChild(alert);
+            setTimeout(() => alert.remove(), 8000);
+        }
+
+        function debug(location, data) {
+            if (!debugMode) return;
+            
+            const debugElement = document.getElementById(`debug${location}Content`);
+            if (debugElement) {
+                const timestamp = new Date().toLocaleTimeString();
+                debugElement.innerHTML = `[${timestamp}] ${JSON.stringify(data, null, 2)}`;
+            }
+            console.log(`[GemAccess Debug - ${location}]`, data);
+        }
+
+        function setLoading(buttonId, loading = true) {
+            const btn = document.getElementById(buttonId);
+            if (!btn) return;
+            
+            const btnText = btn.querySelector('.btn-text');
+            const loadingEl = btn.querySelector('.loading');
+            
+            if (loading) {
+                btn.disabled = true;
+                if (btnText) btnText.style.opacity = '0';
+                if (loadingEl) loadingEl.style.display = 'block';
+            } else {
+                btn.disabled = false;
+                if (btnText) btnText.style.opacity = '1';
+                if (loadingEl) loadingEl.style.display = 'none';
+            }
+        }
+
+        async function signup() {
+            const email = document.getElementById('email').value.trim();
+            const name = document.getElementById('name').value.trim();
+
+            if (!email || !name) {
+                showAlert('Please fill in all fields', 'error');
+                return;
+            }
+
+            if (!email.includes('@')) {
+                showAlert('Please enter a valid email address', 'error');
+                return;
+            }
+
+            setLoading('signupBtn', true);
+            
+            const requestData = { email, name };
+            debug('Signup', { request: requestData, endpoint: API_CONFIG.signup });
+
+            try {
+                showAlert('Creating your account...', 'info');
+                
+                const response = await fetch(API_CONFIG.signup, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                debug('Signup', { 
+                    responseStatus: response.status,
+                    responseHeaders: Object.fromEntries(response.headers.entries())
+                });
+
+                let result;
+                try {
+                    result = await response.json();
+                } catch (parseError) {
+                    const textResponse = await response.text();
+                    debug('Signup', { parseError: parseError.message, textResponse });
+                    throw new Error(`Server returned invalid JSON. Response: ${textResponse.substring(0, 200)}`);
+                }
+
+                debug('Signup', { result });
+
+                if (result.success) {
+                    currentUser = { email, name };
+                    currentToken = result.token;
+                    localStorage.setItem('gemaccess_user', JSON.stringify(currentUser));
+                    localStorage.setItem('gemaccess_token', currentToken);
+                    
+                    showAlert('🎉 Account created successfully! Welcome to GemAccess!', 'success');
+                    showDashboard();
+                } else {
+                    showAlert(result.message || result.error || 'Signup failed. Please try again.', 'error');
+                }
+            } catch (error) {
+                debug('Signup', { error: error.message });
+                showAlert(`Network error: ${error.message}. Please check the N8N workflow.`, 'error');
+            } finally {
+                setLoading('signupBtn', false);
+            }
+        }
+
+        async function refreshToken() {
+            if (!currentToken) {
+                showAlert('No token to refresh', 'error');
+                updateStatus({ active: false, message: 'No token available' });
+                return;
+            }
+
+            setLoading('refreshBtn', true);
+            updateStatus({ loading: true });
+
+            const requestData = { token: currentToken };
+            debug('Token', { request: requestData, endpoint: API_CONFIG.validate });
+
+            try {
+                const response = await fetch(API_CONFIG.validate, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                debug('Token', { 
+                    responseStatus: response.status,
+                    responseHeaders: Object.fromEntries(response.headers.entries())
+                });
+
+                let result;
+                try {
+                    result = await response.json();
+                } catch (parseError) {
+                    const textResponse = await response.text();
+                    debug('Token', { parseError: parseError.message, textResponse });
+                    throw new Error(`Server returned invalid JSON. Response: ${textResponse.substring(0, 200)}`);
+                }
+
+                debug('Token', { result });
+
+                if (result.success && result.valid) {
+                    updateStatus(result.subscription || {});
+                    showAlert('✅ Token validated successfully!', 'success');
+                } else {
+                    updateStatus({ active: false, message: result.message || 'Token is invalid or expired' });
+                    showAlert('❌ ' + (result.message || 'Token is invalid or expired'), 'error');
+                }
+            } catch (error) {
+                debug('Token', { error: error.message });
+                updateStatus({ active: false, error: error.message });
+                showAlert(`Failed to validate token: ${error.message}`, 'error');
+            } finally {
+                setLoading('refreshBtn', false);
+            }
+        }
+
+        function updateStatus(subscription) {
+            const statusEl = document.getElementById('status');
+            const planEl = document.getElementById('planType');
+            const daysEl = document.getElementById('daysLeft');
+            const createdEl = document.getElementById('createdAt');
+            const expiresEl = document.getElementById('expiresAt');
+
+            debug('Status', { subscription });
+
+            if (subscription.loading) {
+                statusEl.className = 'status status-loading';
+                statusEl.textContent = 'Validating...';
+                return;
+            }
+
+            if (subscription.active) {
+                statusEl.className = 'status status-active';
+                statusEl.textContent = 'Active';
+                planEl.textContent = subscription.plan_type || 'Trial';
+                daysEl.textContent = subscription.days_remaining || 0;
+                
+                if (subscription.start_date) {
+                    createdEl.textContent = new Date(subscription.start_date).toLocaleDateString();
+                }
+                if (subscription.end_date) {
+                    expiresEl.textContent = new Date(subscription.end_date).toLocaleDateString();
+                }
+            } else {
+                statusEl.className = 'status status-expired';
+                statusEl.textContent = 'Expired';
+                planEl.textContent = subscription.plan_type || 'None';
+                daysEl.textContent = '0';
+                
+                if (subscription.message) {
+                    showAlert(subscription.message, 'error');
+                }
+            }
+        }
+
+        function copyToken() {
+            const tokenText = document.getElementById('tokenDisplay').textContent.trim();
+            
+            if (!tokenText || tokenText.includes('Loading')) {
+                showAlert('No token available to copy', 'error');
+                return;
+            }
+            
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(tokenText).then(() => {
+                    showAlert('📋 Token copied to clipboard!', 'success');
+                }).catch(() => {
+                    fallbackCopy(tokenText);
+                });
+            } else {
+                fallbackCopy(tokenText);
+            }
+        }
+
+        function fallbackCopy(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            showAlert('📋 Token copied to clipboard!', 'success');
+        }
+
+        function showDashboard() {
+            document.getElementById('signupForm').classList.add('hidden');
+            document.getElementById('dashboard').classList.remove('hidden');
+            
+            if (currentToken) {
+                document.getElementById('tokenDisplay').textContent = currentToken;
+            } else {
+                document.getElementById('tokenDisplay').innerHTML = '<span style="color: #999;">No token available - please sign up first</span>';
+            }
+        }
+
+        function showSignup() {
+            document.getElementById('signupForm').classList.remove('hidden');
+            document.getElementById('dashboard').classList.add('hidden');
+        }
+
+        function showInstructions() {
+            showAlert('💡 Copy your token above, open Custom GPT (VPSPilot v1.3), and say: "My token is [your_token_here]. Help me with my VPS."', 'info');
+        }
+
+        function showUpgrade() {
+            showAlert('🚀 Upgrade options coming soon! Contact support@banirisset.com for premium plans.', 'info');
+        }
+
+        function logout() {
+            localStorage.removeItem('gemaccess_user');
+            localStorage.removeItem('gemaccess_token');
+            currentUser = null;
+            currentToken = null;
+            showSignup();
+            showAlert('👋 Signed out successfully', 'success');
+        }
+
+        function toggleDebug(force = null) {
+            debugMode = force !== null ? force : !debugMode;
+            localStorage.setItem('gemaccess_debug', debugMode.toString());
+            
+            const debugElements = document.querySelectorAll('.debug-info');
+            debugElements.forEach(el => {
+                el.classList.toggle('hidden', !debugMode);
+            });
+            
+            showAlert(`Debug mode ${debugMode ? 'enabled' : 'disabled'}`, 'info');
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', initApp);
+        
+        // Add keyboard shortcuts for power users
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key) {
+                    case 'k':
+                        e.preventDefault();
+                        copyToken();
+                        break;
+                    case 'd':
+                        if (e.shiftKey) {
+                            e.preventDefault();
+                            toggleDebug();
+                        }
+                        break;
+                }
+            }
+        });
+
+        // Add connection status indicator
+        window.addEventListener('online', () => showAlert('🌐 Connection restored', 'success'));
+        window.addEventListener('offline', () => showAlert('⚠️ No internet connection', 'error'));
+    </script>
+</body>
+</html>
